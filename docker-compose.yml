@@ -1,0 +1,49 @@
+version: "3.6"
+
+services:
+
+  mysql:
+    image: mysql:5.7.22
+    container_name: freeradius-mysql
+    volumes:
+     - ./mysql/srv/conf.d:/etc/mysql/conf.d
+     - ./mysql/srv/initdb.d:/docker-entrypoint-initdb.d
+     - ./mysql/srv/data:/var/lib/mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: password
+    restart: always
+
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin
+    container_name: freeradius-pma
+    depends_on:
+      - mysql
+    environment:
+      - PMA_HOST=mysql
+      - PMA_USER=root
+      - PMA_PASSWORD=password
+    ports:
+      - "9200:80"
+
+  radius:
+    image: freeradius/freeradius-server:3.0.17
+    container_name: freeradius
+    depends_on:
+      - mysql
+    ports:
+     - "8812:1812"
+     - "8813:1813"
+    volumes:
+    - "./freeradius/config/freeradius:/etc/freeradius"
+    - "./freeradius/logs:/var/log/freeradius"
+
+    restart: always
+    #tty: true
+
+  radtest:
+    build: ./radtest
+    container_name: freeradius-radtest
+    depends_on:
+      - radius
+    restart: always
+    tty: true
